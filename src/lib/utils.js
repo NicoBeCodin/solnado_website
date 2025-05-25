@@ -1,5 +1,5 @@
 import { Connection, PublicKey } from "@solana/web3.js";
-
+import { DEVNET_RPC_URL } from "./constants";
 
 /**
  * Fetches the SOL balance (in SOL) for a given base58 pubkey string.
