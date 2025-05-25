@@ -32,7 +32,7 @@ export default function Page() {
           </div>
 
           <p className="text-xl text-gray-300">
-            Completely anonymous, fast and cheap transfers. Powered by ZK on solana.
+            Completely anonymous, fast and cheap transfers. Powered by ZK on Solana. This is a work in progress. Check out the docs.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
