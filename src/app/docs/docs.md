@@ -17,6 +17,9 @@ A leaf is a hash of 3 values: ```js
 hash(amount|nullifier|assetId)
 ``` 
 This allows for ZK proofs that leaves being deposited or funds being transfered correspond to actual amounts that are locked in the pool.
+Transfers work by proving that you know the preimage to one (or two) of the leaves of the pool and that the amount written on the leaf you're adding to the tree is equal to the amount on the leaves you're using and nullifying.
+For withdrawal, given the correct computed proof, a third party can withdraw securely towards a wallet of you're choosing to avoid having to fund a gas-less wallet.
+
 ---
 
 ## Efficient Leaf Parsing with Memos
