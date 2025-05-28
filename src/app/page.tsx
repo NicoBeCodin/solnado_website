@@ -13,6 +13,7 @@ const Navbar = dynamic(
 );
 
 export default function Page() {
+  
   return (
     <>
       <Navbar />
