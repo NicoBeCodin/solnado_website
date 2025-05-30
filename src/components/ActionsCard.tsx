@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { useConnection, useWallet, WalletContextState } from "@solana/wallet-adapter-react";
 import { initializeVariablePool } from "../lib/pool.js";
-import {depositVariable} from "../lib/deposit.js";
+import {depositRepeatedly, depositVariable} from "../lib/deposit.js";
+import {transfer, chooseTransfer} from "../lib/transfer.js";
 import { error } from "console";
 import { Connection } from "@solana/web3.js";
 
@@ -78,6 +79,31 @@ export function ActionsCard({ onDeposit, onTransfer, onWithdraw }: Props) {
       }
     }
   };
+  const handleTransfer = async () => {
+    try {
+      const signature = await chooseTransfer(
+        connection,
+        wallet,
+        null,
+      );
+      setToast({ type: "success", message: `Combine tx: ${signature}` });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setToast({ type: "error", message: `Combine failed: ${msg}` });
+    }
+  };
+
+
+ const handleMultiDeposit = async () => {
+     try {
+       // identifier null ⇒ prompt inside depositRepeatedly
+       const count = await depositRepeatedly(connection, wallet, null);
+       showToast("success", `Did ${count} deposits of 1 000 000 lamports`);
+     } catch (err: any) {
+       const msg = err instanceof Error ? err.message : String(err);
+       showToast("error", `Multi‐deposit failed: ${msg}`);
+     }
+   };
 
 
   return (
@@ -91,12 +117,25 @@ export function ActionsCard({ onDeposit, onTransfer, onWithdraw }: Props) {
         Deposit
       </button>
 
+     <button
+       onClick={handleMultiDeposit}
+       className="w-full py-3 rounded-xl bg-gradient-to-r from-pink-400 to-red-600 hover:from-pink-500 hover:to-red-700 text-black font-semibold drop-shadow-lg"
+     >
+       Multiple Deposits
+     </button>
+
       <button
-        onClick={onTransfer}
-        className="w-full py-3 rounded-xl bg-gradient-to-r from-neon-yellow to-orange-500 hover:from-neon-yellow hover:to-orange-600 text-white font-semibold drop-shadow-lg"
+        onClick={handleTransfer}
+        className="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-400 to-green-600 hover:from-cyan-500 hover:to-green-700 text-black font-semibold drop-shadow-lg"
       >
-        Transfer
+        Transfer (combine)
       </button>
+      {toast && (
+        <div className={`fixed bottom-4 w-[80vw] max-h-[50vh] overflow-auto p-4
+          ${toast.type==="success"?"bg-green-600":"bg-red-600"} text-white rounded-lg`}>
+          <pre className="whitespace-pre-wrap">{toast.message}</pre>
+        </div>
+      )}
 
       <button
         onClick={onWithdraw}

@@ -7,23 +7,52 @@ import {
   SYSVAR_INSTRUCTIONS_PUBKEY,
 } from "@solana/web3.js";
 import { groth16 } from "snarkjs";
-import { poseidon1, poseidon2, poseidon3 } from "poseidon-lite";
-import { buildPoseidon } from "circomlibjs";
+import { poseidon3 } from "poseidon-lite";
+// import { buildPoseidon } from "circomlibjs";
 // or your poseidon import
-import { sendTransactionWithLogs, pubkeyToBigInt, to32, g1Uncompressed, g2Uncompressed, attachMemoIfNeeded, maybeAddSmallTreeMemo, to8BE } from "./utils.js";
+import { bigIntToU8Array,sendTransactionWithLogs, pubkeyToBigInt, to32, g1Uncompressed, g2Uncompressed, attachMemoIfNeeded, maybeAddSmallTreeMemo, to8BE, parseMerkleMountainRange } from "./utils.js";
 import {
   PROGRAM_ID,
   VARIABLE_POOL_SEED,
-  MEMO_PROGRAM_ID,
-  SUB_BATCH_SIZE,
-  BATCH_LENGTH,
   instructionDiscriminators,
   LEAVES_INDEXER_SEED,
   SUBTREE_INDEXER_SEED,
+  TREE_DEPTH_LARGE_ARRAY,
 } from "./constants.js";
 const { buildBn128, utils } = require("ffjavascript");
-const { unstringifyBigInts } = utils;
 
+export async function depositRepeatedly(connection, walletAdapter, identifier) {
+  if (!walletAdapter.publicKey) {
+    throw new Error("Wallet not connected");
+  }
+
+  // 1) Ask how many deposits
+  const raw = prompt("How many deposits of 1 000 000 lamports would you like to make?");
+  const count = Number(raw);
+  if (!Number.isInteger(count) || count <= 0) {
+    throw new Error("Invalid number of deposits");
+  }
+  if (!identifier) {
+    identifier = prompt("Enter pool identifier (max 16 chars):") || "";
+  }
+
+  // 2) For each i, call your existing depositVariable
+  for (let i = 1; i <= count; i++) {
+    console.log(`🔄 Deposit #${i} of ${count}…`);
+    // we'll deposit a single leaf of 1_000_000 with nullifier "nul<i>"
+    let result = await depositVariable(
+      connection,
+      walletAdapter,
+      identifier,
+      [1_000_000, 1_000_000],
+      [`nul5${i}`, `nul6${i}`]
+    );
+    console.log("Result:", result);
+    console.log("Finished deposit", i);
+  }
+
+  console.log(`✅ Completed ${count} deposits.`);
+}
 export async function depositVariable(
   connection,
   walletAdapter,
@@ -37,16 +66,15 @@ export async function depositVariable(
     identifier = prompt("Enter pool identifier (max 16 chars):") || "";
   }
   if (!values || !values.length) {
-    // const v1 = Number(prompt("Value 1 (lamports):") || "0");
-    const v1 = 1400000;
-    // const v2 = Number(prompt("Value 2 (lamports):") || "0");
-    const v2=null;
+    const v1 = Number(prompt("Value 1 (lamports):") || "0");
+    const v2 = Number(prompt("Value 2 (lamports):") || "0");
     values = v2 ? [v1, v2] : [v1];    
+    nulls = values.map((_, i) =>
+      prompt(`Nullifier ${i + 1} (string):`) || ""
+    );
   }
-  // nulls = values.map((_, i) =>
-  //   prompt(`Nullifier ${i + 1} (string):`) || ""
-  // );
-  nulls = "nul1400000";
+  
+
 
   // 2) Derive PDA
   const idBuf = Buffer.alloc(16);
@@ -59,14 +87,14 @@ export async function depositVariable(
   // 3) Fetch on-chain state
   const acct = await connection.getAccountInfo(poolPDA);
   if (!acct) throw new Error("Pool not found");
+  const merkleMountainRange = parseMerkleMountainRange(acct.data, TREE_DEPTH_LARGE_ARRAY);
+    
+  const lastSmallTreeRoot = merkleMountainRange.lastSmallTreeRoot;
+  const batchNum = merkleMountainRange.batchNumber;
+  
   const dataArr = Buffer.from(acct.data);
-  const dv = new DataView(
-    dataArr.buffer,
-    dataArr.byteOffset,
-    dataArr.byteLength
-  );
 
-  const batchNum = dv.getBigUint64(640, true); // little-endian u64  
+  
   // 4) Native SOL assetId
   // const assetIdBig = pubkeyToBigInt(
   //   "So11111111111111111111111111111111111111111"
@@ -144,6 +172,8 @@ export async function depositVariable(
     const sumBuf = to8BE(sumSig);
 
     // now
+    console.log("leaf1 as bigint ", leaf1Sig);
+    console.log("leaf1 as U8 array", bigIntToU8Array(leaf1Sig));
     pubBuf = Buffer.concat([
       sumBuf,                      // 8 bytes
       to32(leaf1Sig),              // 32 bytes
@@ -185,7 +215,7 @@ export async function depositVariable(
   const instrs = [];
 
   // sub‐batch memo
-  if (await attachMemoIfNeeded(tx, dataArr, leaves, instrs)) {
+  if (await attachMemoIfNeeded(dataArr, leaves, instrs)) {
     console.log("📝 Sub‐batch memo attached");
     const [leavesIndexer] = PublicKey.findProgramAddressSync(
       [LEAVES_INDEXER_SEED, idBuf],
@@ -202,13 +232,22 @@ export async function depositVariable(
   }
 
   // small‐tree memo
-  if (await maybeAddSmallTreeMemo(/* same fresh Tx? */ Number(batchNum), dataArr.slice(576, 608), instrs)) {
+  if (await maybeAddSmallTreeMemo(Number(batchNum), lastSmallTreeRoot, instrs)) {
     console.log("Adding small tree memoIx");
     const [subtreeIndexer] = PublicKey.findProgramAddressSync(
       [SUBTREE_INDEXER_SEED, idBuf],
       PROGRAM_ID
     );
+    const [leavesIndexer] = PublicKey.findProgramAddressSync(
+      [LEAVES_INDEXER_SEED, idBuf],
+      PROGRAM_ID
+    );
     // **append** the indexer PDA to your depositIx keys
+    depositIx.keys.push({
+      pubkey: leavesIndexer,
+      isSigner: false,
+      isWritable: false,
+    });
     depositIx.keys.push({
       pubkey: subtreeIndexer,
       isSigner: false,
@@ -259,4 +298,5 @@ export async function depositVariable(
 
   // 9) Send
   return await sendTransactionWithLogs(connection, walletAdapter, tx)
+
 }

@@ -6,6 +6,7 @@ export const MEMO_PROGRAM_ID = new PublicKey(
   "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
 );
 export const MAX_TREE_DEPTH = 30;
+export const TREE_DEPTH_LARGE_ARRAY = 26;
 export const DEVNET_RPC_URL = "https://api.devnet.solana.com"
 export const CONNECTION = new Connection(clusterApiUrl("devnet"), "confirmed")
 export const PROGRAM_ID = new PublicKey("FyAuPyboHtdnnqbcAhTXjKwXRNqxiWYK4Xwvc5Gtw8Ln")
@@ -15,6 +16,7 @@ export const SUBTREE_INDEXER_SEED = Buffer.from("subtree_indexer");
 export const BATCH_LENGTH = 16;
 export const BATCHES_PER_SMALL_TREE = 4096;
 export const SUB_BATCH_SIZE = 8;
+export const TARGET_DEPTH = 30;
 
 // instruction_discriminators.js
 
