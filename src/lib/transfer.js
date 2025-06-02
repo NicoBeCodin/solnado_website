@@ -10,7 +10,7 @@ import { groth16 } from "snarkjs";
 import { poseidon1, poseidon2, poseidon3 } from "poseidon-lite";
 // import { buildPoseidon } from "circomlibjs";
 // or your poseidon import
-import { sendTransactionWithLogs, BigInt, to32, g1Uncompressed, g2Uncompressed, attachMemoIfNeeded, maybeAddSmallTreeMemo, getVariableBatchesFromMemos, padWithDefaultLeaves, buildMerkleTree, getMerkleProof, parseMerkleMountainRange} from "./utils.js";
+import { sendTransactionWithLogs, to32, g1Uncompressed, g2Uncompressed, attachMemoIfNeeded, maybeAddSmallTreeMemo, getVariableBatchesFromMemos, padWithDefaultLeaves, buildMerkleTree, getMerkleProof, parseMerkleMountainRange} from "./utils.js";
 import {
   PROGRAM_ID,
   VARIABLE_POOL_SEED,
@@ -20,7 +20,7 @@ import {
   TARGET_DEPTH,
   TREE_DEPTH_LARGE_ARRAY
 } from "./constants.js";
-import {buildBn128, utils } from "ffjavascript";
+import {buildBn128, utils} from "ffjavascript";
 
 
 export async function transfer(
@@ -79,7 +79,7 @@ export async function transfer(
 
   // 5) Prompt new‐leaf values & nullifiers
   let newVals, newNulls;
-  if (mode === 0) {
+  if (mode === 0) { 
     // 2→1
     const nv = vals[0] + vals[1];
     const nn = BigInt(prompt("New nullifier:") || "0");
