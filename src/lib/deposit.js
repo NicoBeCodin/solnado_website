@@ -10,7 +10,7 @@ import { groth16 } from "snarkjs";
 import { poseidon3 } from "poseidon-lite";
 // import { buildPoseidon } from "circomlibjs";
 // or your poseidon import
-import { bigIntToU8Array,sendTransactionWithLogs, pubkeyToBigInt, to32, g1Uncompressed, g2Uncompressed, attachMemoIfNeeded, maybeAddSmallTreeMemo, to8BE, parseMerkleMountainRange } from "./utils.js";
+import { bigIntToU8Array,sendTransactionWithLogs, to32, g1Uncompressed, g2Uncompressed, attachMemoIfNeeded, maybeAddSmallTreeMemo, to8BE, parseMerkleMountainRange } from "./utils.js";
 import {
   PROGRAM_ID,
   VARIABLE_POOL_SEED,
@@ -19,9 +19,10 @@ import {
   SUBTREE_INDEXER_SEED,
   TREE_DEPTH_LARGE_ARRAY,
 } from "./constants.js";
-const { buildBn128, utils } = require("ffjavascript");
+import {buildBn128, utils} from "ffjavascript";
 
-export async function depositRepeatedly(connection, walletAdapter, identifier) {
+
+export async function depositRepeatedly(connection, walletAdapter, identifier, nullifier) {
   if (!walletAdapter.publicKey) {
     throw new Error("Wallet not connected");
   }
@@ -35,6 +36,9 @@ export async function depositRepeatedly(connection, walletAdapter, identifier) {
   if (!identifier) {
     identifier = prompt("Enter pool identifier (max 16 chars):") || "";
   }
+  if (!nullifier){
+    nullifier =prompt("Enter the default nullifier string that will be incremented");
+  }
 
   // 2) For each i, call your existing depositVariable
   for (let i = 1; i <= count; i++) {
@@ -45,13 +49,13 @@ export async function depositRepeatedly(connection, walletAdapter, identifier) {
       walletAdapter,
       identifier,
       [1_000_000, 1_000_000],
-      [`n${i}`, `nullifier${i}`]
+      [`${nullifier}${i}`, `${nullifier}_${i}`]
     );
     console.log("Result:", result);
     console.log("Finished deposit", i);
   }
 
-  console.log(`✅ Completed ${count} deposits.`);
+  console.log(`✅ Completed ${i} deposits.`);
 }
 export async function depositVariable(
   connection,

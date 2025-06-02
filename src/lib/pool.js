@@ -26,7 +26,7 @@ import {
     idBuf.write(identifierString, 0, "utf8");
   
     // 2) Derive PDAs
-    const [poolPDA, poolBump] = PublicKey.findProgramAddressSync(
+    const [poolPDA] = PublicKey.findProgramAddressSync(
       [VARIABLE_POOL_SEED, idBuf],
       PROGRAM_ID
     );

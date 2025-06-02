@@ -1,8 +1,8 @@
-import { Connection, PublicKey, TransactionInstruction, getSignaturesForAddress } from "@solana/web3.js";
+import { Connection, PublicKey, TransactionInstruction } from "@solana/web3.js";
 import { CONNECTION, DEVNET_RPC_URL, BATCH_LENGTH, BATCHES_PER_SMALL_TREE, SUB_BATCH_SIZE, MEMO_PROGRAM_ID } from "./constants";
 import {toBigInt} from "ethers";
 import {poseidon2} from "poseidon-lite";
-const { buildBn128, utils } = require("ffjavascript");
+
 /**
  * Fetches the SOL balance (in SOL) for a given base58 pubkey string.
  */
@@ -57,17 +57,6 @@ export function padWithDefaultLeaves(leaves){
   }
   console.log("Padded leaves length:", leaves.length);
   return leaves;
-}
-
-function getDefaultRootDepth(depth) {
-  let parentHash = BigInt(0); // Assuming DEFAULT_LEAF is defined as a constant
-
-  for (let i = 0; i < depth; i++) {
-      parentHash = poseidon2([parentHash, parentHash]);
-      // console.log(`Depth ${i + 1} hash: ${parentHash.toString()}`);
-  }
-
-  return parentHash;
 }
 
 export function nextPowerOfTwo(n) {

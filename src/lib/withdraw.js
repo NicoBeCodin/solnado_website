@@ -4,7 +4,7 @@ import {
     TransactionInstruction,
     ComputeBudgetProgram,
     SystemProgram,
-    SYSVAR_INSTRUCTIONS_PUBKEY,
+    
 } from "@solana/web3.js";
 import { groth16 } from "snarkjs";
 import { poseidon1, poseidon2, poseidon3 } from "poseidon-lite";
@@ -20,14 +20,14 @@ import {
     TREE_DEPTH_LARGE_ARRAY,
     TARGET_DEPTH,
 } from "./constants.js";
-const { buildBn128, utils } = require("ffjavascript");
+import {buildBn128, utils} from "ffjavascript";
 
 export async function chooseWithdraw(connection, walletAdapter, identifier) {
     if (!walletAdapter.publicKey) throw new Error("Wallet not connected");
     if (!identifier) {
         identifier = prompt("Enter pool identifier (max 16 chars):") || "";
     }
-    // 1) Choose mode
+
 
 
     const mode = Number(prompt(
@@ -40,9 +40,9 @@ export async function chooseWithdraw(connection, walletAdapter, identifier) {
     if (![0, 1, 2].includes(mode)) throw new Error("Invalid mode");
     switch (mode) {
         case 0:
-            return await withdraw(connection, walletAdapter, identifier);
+            return await withdraw(connection, walletAdapter, identifier, value, nullifier);
         case 1:
-            return await withdrawAndAdd(connection, walletAdapter, identifier, null);
+            return await withdrawAndAdd(connection, walletAdapter, identifier, value, nullifier, amountToWithdraw, newNullifier);
         case 2:
             alert("Coming soon...");
         case 3:
@@ -57,19 +57,13 @@ export async function chooseWithdraw(connection, walletAdapter, identifier) {
 export async function withdraw(connection, walletAdapter, identifier, value, nullifier) {
     //proof generation
     if (!value || !nullifier) {
-        // value = BigInt(prompt("Note value (u64): "));
-        // nullifier = prompt("Nullifier string: ");
-        value = BigInt(1000000);
-        nullifier = "null2"
-    }
-
-    // const secret = 10000;
-    // const nullifier = "test10000";
-    const assetId = BigInt(0);//0 for SOL
-
+        value = BigInt(prompt("Note value (u64): "));
+        nullifier = prompt("Nullifier string: ");
+    }    
     if (!identifier) {
         identifier = prompt("Enter pool identifier (max 16 chars):") || "";
     }
+    const assetId = BigInt(0);//0 for SOL
     const idBuf = Buffer.alloc(16);
     idBuf.write(identifier, 0, "utf8");
     const [poolPDA] = PublicKey.findProgramAddressSync(
@@ -104,7 +98,7 @@ export async function withdraw(connection, walletAdapter, identifier, value, nul
     const defaultHash = [0n];
     for (let d = 1; d <= TARGET_DEPTH; d++) {
         defaultHash[d] = poseidon2([defaultHash[d - 1], defaultHash[d - 1]]);
-        let defaultHashBytes = bigIntToU8Array(defaultHash[d]);
+        // let defaultHashBytes = bigIntToU8Array(defaultHash[d]);
         //   console.log(`default hash ${d} : ${defaultHashBytes}`);
     }
 
@@ -157,14 +151,16 @@ export async function withdraw(connection, walletAdapter, identifier, value, nul
         wasmPath,
         zkeyPath
     );
+      console.log("test");
 
     const sigs = publicSignals.map(s => BigInt(s));
     const pubBuf = Buffer.concat([
         to32(sigs[0]),  // nullHash1
         to32(sigs[1]),  // assetId
-        to8BE(value),  // val
+        to8BE(value_number),  // val
         to32(sigs[3]),  // root
     ]);
+
 
     // — 9) Serialize proof πA/πB/πC —
     const { unstringifyBigInts } = utils;
@@ -188,6 +184,7 @@ export async function withdraw(connection, walletAdapter, identifier, value, nul
         [Buffer.from(to32(sigs[0]), "utf8")],
         PROGRAM_ID
     );
+
 
     const keys = [
         { pubkey: poolPDA, isSigner: false, isWritable: true },
@@ -237,6 +234,7 @@ export async function withdrawAndAdd(connection, walletAdapter, identifier, valu
     }
     //Value that will go in the the leaf
     let newValue = BigInt(value - withdrawAmount);
+    const value_number = value;
     value = BigInt(value);
     withdrawAmount = BigInt(withdrawAmount);
     
@@ -286,8 +284,6 @@ export async function withdrawAndAdd(connection, walletAdapter, identifier, valu
     const defaultHash = [0n];
     for (let d = 1; d <= TARGET_DEPTH; d++) {
         defaultHash[d] = poseidon2([defaultHash[d - 1], defaultHash[d - 1]]);
-        let defaultHashBytes = bigIntToU8Array(defaultHash[d]);
-        //   console.log(`default hash ${d} : ${defaultHashBytes}`);
     }
 
     // 5) Pad to next power-of-two then build minimal subtree
@@ -315,7 +311,7 @@ export async function withdrawAndAdd(connection, walletAdapter, identifier, valu
     for (let j = 0; j < siblingsNeeded; j++) {
         fullRoot = poseidon2([fullRoot, defaultHash[subPath.length + j]]);
     }
-    
+
     const siblings = fullPath.slice().reverse().map(x => x.toString());
 
     // 9) Build the snark input
@@ -342,6 +338,7 @@ export async function withdrawAndAdd(connection, walletAdapter, identifier, valu
         wasmPath,
         zkeyPath
     );
+      console.log("testt");
 
     const sigs = publicSignals.map(s => BigInt(s));
     const pubBuf = Buffer.concat([
@@ -350,7 +347,9 @@ export async function withdrawAndAdd(connection, walletAdapter, identifier, valu
         to8BE(withdrawAmount),  // val
         to32(sigs[3]), //new leaf
         to32(sigs[4]),  // root
-    ]);
+    ]);  
+    console.log("testsss");
+
 
     // — 9) Serialize proof πA/πB/πC —
     const { unstringifyBigInts } = utils;
@@ -396,6 +395,7 @@ export async function withdrawAndAdd(connection, walletAdapter, identifier, valu
     });
     console.log("Added leaves_indexer to combineIx")
   }
+    console.log("testl");
 
   if (await maybeAddSmallTreeMemo(batchNum, lastSmallTreeRoot, instrs)) {
     console.log("Adding small tree memoIx");
@@ -418,7 +418,7 @@ export async function withdrawAndAdd(connection, walletAdapter, identifier, valu
       isWritable: false,
     });
   }
-
+  console.log("test");
 
     const ix = new TransactionInstruction({
         programId: PROGRAM_ID,

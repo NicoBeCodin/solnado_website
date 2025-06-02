@@ -10,7 +10,7 @@ import { groth16 } from "snarkjs";
 import { poseidon1, poseidon2, poseidon3 } from "poseidon-lite";
 // import { buildPoseidon } from "circomlibjs";
 // or your poseidon import
-import { sendTransactionWithLogs, pubkeyToBigInt, to32, g1Uncompressed, g2Uncompressed, attachMemoIfNeeded, maybeAddSmallTreeMemo, to8BE, getVariableBatchesFromMemos, padWithDefaultLeaves, buildMerkleTree, getMerkleProof, bigIntToU8Array, parseMerkleMountainRange} from "./utils.js";
+import { sendTransactionWithLogs, BigInt, to32, g1Uncompressed, g2Uncompressed, attachMemoIfNeeded, maybeAddSmallTreeMemo, getVariableBatchesFromMemos, padWithDefaultLeaves, buildMerkleTree, getMerkleProof, parseMerkleMountainRange} from "./utils.js";
 import {
   PROGRAM_ID,
   VARIABLE_POOL_SEED,
@@ -20,7 +20,7 @@ import {
   TARGET_DEPTH,
   TREE_DEPTH_LARGE_ARRAY
 } from "./constants.js";
-const { buildBn128, utils } = require("ffjavascript");
+import {buildBn128, utils } from "ffjavascript";
 
 
 export async function transfer(
@@ -259,7 +259,7 @@ export async function transfer(
   ];
 
   // add nullifier PDAs
-  nulls.forEach((n, i) => {
+  nulls.forEach((n, _) => {
     const [nd] = PublicKey.findProgramAddressSync([Buffer.from(n)], PROGRAM_ID);
     keys.push({ pubkey: nd, isSigner: false, isWritable: true });
   });
@@ -351,7 +351,8 @@ export async function chooseTransfer(
 export async function transferCombine2to1(
   connection,
   walletAdapter,
-  identifier
+  identifier,
+  v1, n1, v2, n2, newNullifier 
 ) {
   if (!walletAdapter.publicKey) throw new Error("Wallet not connected");
 
@@ -361,14 +362,14 @@ export async function transferCombine2to1(
   // const v2 = BigInt(prompt("Old leaf #2 value (lamports):") || "0");
   // const n2 = prompt("Old nullifier #2 (utf8):") || "";
 
-  const v1 = BigInt(1000000);
-  const n1 = "nul21";
-  const v2 = BigInt(1000000);
-  const n2 = "nul31";
+  // const v1 = BigInt(1000000);
+  // const n1 = "nul21";
+  // const v2 = BigInt(1000000);
+  // const n2 = "nul31";
 
   // — 3) Prompt the new‐leaf nullifier and compute its commitment —
   // const newNullifier = prompt("enter new nullifier");
-  const newNullifier = "nul2400000";
+  newNullifier = "nul2400000";
   const newNull = BigInt("0x" + Buffer.from(newNullifier, "utf8").toString("hex"));
   const assetId = 0n; // native SOL
   const newVal = v1 + v2;
@@ -386,11 +387,11 @@ export async function transferCombine2to1(
     oldNull2,
     assetId
   ]);
-  console.log("Test  ", identifier)
+
   const oldNullHash1 = poseidon1([oldNull1]);
   const oldNullHash2 = poseidon1([oldNull2]);
   // — 5) Fetch on‐chain root from pool account —
-  console.log("Test2");
+
   const idBuf = Buffer.alloc(16);
   idBuf.write(identifier, 0, "utf8");
   const [poolPDA] = PublicKey.findProgramAddressSync(
@@ -577,7 +578,7 @@ export async function transferCombine2to1(
       isWritable: false,
     });
   }
-  console.log('test 6');
+
   
   const ix = new TransactionInstruction({
     programId: PROGRAM_ID,
@@ -596,22 +597,25 @@ export async function transferCombine2to1(
   return await sendTransactionWithLogs(connection, walletAdapter, tx);
 }
 
-export async function transferCombine1to2(connection, walletAdapter, identifier)
+export async function transferCombine1to2(connection, walletAdapter, identifier, n1, v1, newVal1, newNullifier1, newNullifier2)
   {
     if (!walletAdapter.publicKey) throw new Error("Wallet not connected");
   
     // — 1) Prompt the two old‐leaves —
-    // const v1 = BigInt(prompt("Old leaf #1 value (lamports):") || "0");
-    // const n1 = prompt("Old nullifier #1 (utf8):") || "";
-  
-    const v1 = BigInt(1000000);
-    const n1 = "nul41";
-  
+    // const v1 = BigInt(1000000);
+    // const n1 = "nul41";
+    
     // — 3) Prompt the new‐leaf nullifier and compute its commitment —
-    const newVal1  = BigInt(prompt("Enter new val1 (second value will be deducted)"));
-    const newNullifier1 = prompt("enter new nullifier1");
-    const newNullifier2 = prompt("Enter new nullifier2");
-    const newVal2 = v1 - newVal1;
+    if (!n1){
+       v1 = BigInt(prompt("Old leaf #1 value (lamports):") || "0");
+       n1 = prompt("Old nullifier #1 (utf8):") || "";
+    
+      
+      newVal1  = BigInt(prompt("Enter new val1 (second value will be deducted)"));
+      newNullifier1 = prompt("enter new nullifier1");
+      newNullifier2 = prompt("Enter new nullifier2");
+      const newVal2 = v1 - newVal1;
+    }
 
     // const newNullifier1 = "nul2400000";
     const newNull1 = BigInt("0x" + Buffer.from(newNullifier1, "utf8").toString("hex"));
