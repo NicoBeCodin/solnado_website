@@ -202,7 +202,7 @@ export function parseMerkleMountainRange(data, targetDepthLarge) {
   offset += 32;
 
   // 7) batch_number: u64 LE
-  const batchNumber = dv.getBigUint64(offset, true);//640
+  const batchNumber = Number(dv.getBigUint64(offset, true));//640
   const batchNumberBuffer = dataArr.slice(640,648);
   offset += 8;
 
@@ -305,8 +305,6 @@ export async function findFreeSlotIndex(poolInfo) {
   }
   return -1;
 }
-
-
 
 export async function attachMemoIfNeeded(poolInfo, leavesToAdd, instrs) {
   // 1) Find first free slot

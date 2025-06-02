@@ -45,7 +45,7 @@ export async function depositRepeatedly(connection, walletAdapter, identifier) {
       walletAdapter,
       identifier,
       [1_000_000, 1_000_000],
-      [`nul5${i}`, `nul6${i}`]
+      [`n${i}`, `nullifier${i}`]
     );
     console.log("Result:", result);
     console.log("Finished deposit", i);
@@ -232,7 +232,7 @@ export async function depositVariable(
   }
 
   // small‐tree memo
-  if (await maybeAddSmallTreeMemo(Number(batchNum), lastSmallTreeRoot, instrs)) {
+  if (await maybeAddSmallTreeMemo(batchNum, lastSmallTreeRoot, instrs)) {
     console.log("Adding small tree memoIx");
     const [subtreeIndexer] = PublicKey.findProgramAddressSync(
       [SUBTREE_INDEXER_SEED, idBuf],

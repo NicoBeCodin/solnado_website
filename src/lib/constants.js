@@ -7,9 +7,9 @@ export const MEMO_PROGRAM_ID = new PublicKey(
 );
 export const MAX_TREE_DEPTH = 30;
 export const TREE_DEPTH_LARGE_ARRAY = 26;
-export const DEVNET_RPC_URL = "https://api.devnet.solana.com"
-export const CONNECTION = new Connection(clusterApiUrl("devnet"), "confirmed")
-export const PROGRAM_ID = new PublicKey("FyAuPyboHtdnnqbcAhTXjKwXRNqxiWYK4Xwvc5Gtw8Ln")
+export const DEVNET_RPC_URL = "https://api.devnet.solana.com";
+export const CONNECTION = new Connection(clusterApiUrl("devnet"), "confirmed");
+export const PROGRAM_ID = new PublicKey("2xJgeatVVK3u3SNf4pyXuLuc2UrzEQBprPds2qfJSuEt");
 export const VARIABLE_POOL_SEED = Buffer.from("variable_pool");
 export const LEAVES_INDEXER_SEED = Buffer.from("leaves_indexer");
 export const SUBTREE_INDEXER_SEED = Buffer.from("subtree_indexer");
