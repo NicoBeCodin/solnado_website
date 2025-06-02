@@ -1,5 +1,5 @@
 import { Connection, PublicKey, TransactionInstruction } from "@solana/web3.js";
-import { CONNECTION, DEVNET_RPC_URL, BATCH_LENGTH, BATCHES_PER_SMALL_TREE, SUB_BATCH_SIZE, MEMO_PROGRAM_ID } from "./constants";
+import {  DEVNET_RPC_URL, BATCH_LENGTH, BATCHES_PER_SMALL_TREE, SUB_BATCH_SIZE, MEMO_PROGRAM_ID } from "./constants";
 import {toBigInt} from "ethers";
 import {poseidon2} from "poseidon-lite";
 

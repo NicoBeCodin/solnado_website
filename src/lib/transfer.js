@@ -259,7 +259,7 @@ export async function transfer(
   ];
 
   // add nullifier PDAs
-  nulls.forEach((n, _) => {
+  nulls.forEach((n) => {
     const [nd] = PublicKey.findProgramAddressSync([Buffer.from(n)], PROGRAM_ID);
     keys.push({ pubkey: nd, isSigner: false, isWritable: true });
   });
@@ -614,9 +614,9 @@ export async function transferCombine1to2(connection, walletAdapter, identifier,
       newVal1  = BigInt(prompt("Enter new val1 (second value will be deducted)"));
       newNullifier1 = prompt("enter new nullifier1");
       newNullifier2 = prompt("Enter new nullifier2");
-      const newVal2 = v1 - newVal1;
     }
-
+    
+    let newVal2 = v1 - newVal1;
     // const newNullifier1 = "nul2400000";
     const newNull1 = BigInt("0x" + Buffer.from(newNullifier1, "utf8").toString("hex"));
     const newNull2 = BigInt("0x" + Buffer.from(newNullifier2, "utf8").toString("hex"));

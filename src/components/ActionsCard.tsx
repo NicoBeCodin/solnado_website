@@ -13,7 +13,7 @@ import {
   transferCombine2to1,
   transferCombine1to2, chooseTransfer
 } from "../lib/transfer.js";
-import { chooseWithdraw, withdraw, withdrawAndAdd } from "../lib/withdraw.js";
+import {  withdraw, withdrawAndAdd } from "../lib/withdraw.js";
 
 
 // type Props = {
@@ -114,16 +114,25 @@ const [isProcessingWithdrawForm, setIsProcessingWithdrawForm] = useState(false);
 
       // Reset any related form state, if needed
       setDepositIdentifier("");
-    } catch (err: any) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (Array.isArray(err.logs)) {
-        console.groupCollapsed("❌ Program error logs");
-        err.logs.forEach((l: string) => console.log(l));
-        console.groupEnd();
-      }
-      showToast("error", `Init failed: ${msg}`);
-      console.error(err);
+    } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // If this error object has a `logs: string[]` field, print it:
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "logs" in err &&
+      Array.isArray((err as { logs: unknown[] }).logs)
+    ) {
+      const maybeLogs = (err as { logs: unknown[] }).logs;
+      console.groupCollapsed("❌ Program error logs");
+      maybeLogs.forEach((l) => {
+        if (typeof l === "string") console.log(l);
+      });
+      console.groupEnd();
     }
+    showToast("error", `Init failed: ${msg}`);
+    console.error(err);
+  }
   };
 
   // ────────────────────────────────────────────────────────────────
@@ -175,17 +184,25 @@ const [isProcessingWithdrawForm, setIsProcessingWithdrawForm] = useState(false);
       setDepositAmounts(["", ""]);
       setDepositNulls(["", ""]);
       setDepositCount(1);
-    } catch (err: any) {
-      const msg = err.message || String(err);
-      showToast("error", `Deposit failed: ${msg}`);
-      if (Array.isArray(err.logs)) {
-        console.groupCollapsed("❌ Deposit error logs");
-        err.logs.forEach((l: string) => console.log(l));
-        console.groupEnd();
-      }
-    } finally {
-      setIsProcessingDeposit(false);
+    } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    showToast("error", `Deposit failed: ${msg}`);
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "logs" in err &&
+      Array.isArray((err as { logs: unknown[] }).logs)
+    ) {
+      const maybeLogs = (err as { logs: unknown[] }).logs;
+      console.groupCollapsed("❌ Deposit error logs");
+      maybeLogs.forEach((l) => {
+        if (typeof l === "string") console.log(l);
+      });
+      console.groupEnd();
     }
+  } finally {
+    setIsProcessingDeposit(false);
+  }
   };
 
   // Handlers for deposit form inputs
@@ -431,12 +448,20 @@ const handleWithdrawFormSubmit = async (e: FormEvent) => {
     setWdNullifier("");
     setWdAddAmount("");
     setWdNewNull("");
-  } catch (err: any) {
-    const msg = err.message || String(err);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
     showToast("error", `Withdraw failed: ${msg}`);
-    if (Array.isArray(err.logs)) {
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "logs" in err &&
+      Array.isArray((err as { logs: unknown[] }).logs)
+    ) {
+      const maybeLogs = (err as { logs: unknown[] }).logs;
       console.groupCollapsed("❌ Withdraw error logs");
-      err.logs.forEach((l: string) => console.log(l));
+      maybeLogs.forEach((l) => {
+        if (typeof l === "string") console.log(l);
+      });
       console.groupEnd();
     }
   } finally {
@@ -451,21 +476,21 @@ const handleWithdrawModeChange = (e: ChangeEvent<HTMLSelectElement>) => {
   setWithdrawMode(m === 1 ? 1 : 0);
 };
   
-  const handleWithdraw = async () => {
-    try {
-      if (!wallet.publicKey) throw new Error("Wallet not connected");
-      const sig = await chooseWithdraw(connection, wallet, null);
-      showToast("success", `Withdraw sent: ${sig}`);
-    } catch (err: any) {
-      const msg = err instanceof Error ? err.message : String(err);
-      showToast("error", `Withdraw failed: ${msg}`);
-      if (Array.isArray(err.logs)) {
-        console.groupCollapsed("❌ Withdraw error logs");
-        err.logs.forEach((l: string) => console.log(l));
-        console.groupEnd();
-      }
-    }
-  };
+  // const handleWithdraw = async () => {
+  //   try {
+  //     if (!wallet.publicKey) throw new Error("Wallet not connected");
+  //     const sig = await chooseWithdraw(connection, wallet, null);
+  //     showToast("success", `Withdraw sent: ${sig}`);
+  //   } catch (err: any) {
+  //     const msg = err instanceof Error ? err.message : String(err);
+  //     showToast("error", `Withdraw failed: ${msg}`);
+  //     if (Array.isArray(err.logs)) {
+  //       console.groupCollapsed("❌ Withdraw error logs");
+  //       err.logs.forEach((l: string) => console.log(l));
+  //       console.groupEnd();
+  //     }
+  //   }
+  // };
 
   return (
     <div className="bg-[#111] border border-gray-800 rounded-2xl p-6 flex flex-col gap-4 shadow-lg">

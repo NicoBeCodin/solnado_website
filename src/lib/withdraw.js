@@ -10,7 +10,7 @@ import { groth16 } from "snarkjs";
 import { poseidon1, poseidon2, poseidon3 } from "poseidon-lite";
 // import { buildPoseidon } from "circomlibjs";
 // or your poseidon import
-import { bigIntToU8Array, sendTransactionWithLogs, getMerkleProof, to32, g1Uncompressed, g2Uncompressed, attachMemoIfNeeded, maybeAddSmallTreeMemo, to8BE, parseMerkleMountainRange, getVariableBatchesFromMemos, padWithDefaultLeaves, buildMerkleTree } from "./utils.js";
+import { sendTransactionWithLogs, getMerkleProof, to32, g1Uncompressed, g2Uncompressed, attachMemoIfNeeded, maybeAddSmallTreeMemo, to8BE, parseMerkleMountainRange, getVariableBatchesFromMemos, padWithDefaultLeaves, buildMerkleTree } from "./utils.js";
 import {
     PROGRAM_ID,
     VARIABLE_POOL_SEED,
@@ -234,7 +234,6 @@ export async function withdrawAndAdd(connection, walletAdapter, identifier, valu
     }
     //Value that will go in the the leaf
     let newValue = BigInt(value - withdrawAmount);
-    const value_number = value;
     value = BigInt(value);
     withdrawAmount = BigInt(withdrawAmount);
     
