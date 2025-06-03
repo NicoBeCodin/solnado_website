@@ -12,6 +12,7 @@ const Navbar = dynamic(
   { ssr: false }
 );
 
+
 export default function Page() {
   
   return (
@@ -39,9 +40,7 @@ export default function Page() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <HoldingsCard />
             <ActionsCard
-              onDeposit={() => alert("Deposit")}
-              onTransfer={() => alert("Transfer")}
-              onWithdraw={() => alert("Withdraw")}
+              
             />
           </div>
         </div>

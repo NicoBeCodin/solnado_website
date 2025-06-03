@@ -234,10 +234,25 @@ const [isProcessingWithdrawForm, setIsProcessingWithdrawForm] = useState(false);
       // depositRepeatedly will prompt internally for identifier & count
       const count = await depositRepeatedly(connection, wallet, null);
       showToast("success", `Did ${count} deposits`);
-    } catch (err: any) {
-      const msg = err instanceof Error ? err.message : String(err);
-      showToast("error", `Multi-deposit failed: ${msg}`);
+    } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // If this error object has a `logs: string[]` field, print it:
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "logs" in err &&
+      Array.isArray((err as { logs: unknown[] }).logs)
+    ) {
+      const maybeLogs = (err as { logs: unknown[] }).logs;
+      console.groupCollapsed("❌ Program error logs");
+      maybeLogs.forEach((l) => {
+        if (typeof l === "string") console.log(l);
+      });
+      console.groupEnd();
     }
+    showToast("error", `Init failed: ${msg}`);
+    console.error(err);
+  }
   };
 
   // ────────────────────────────────────────────────────────────────
@@ -353,14 +368,24 @@ const [isProcessingWithdrawForm, setIsProcessingWithdrawForm] = useState(false);
     setT1NewVal1("");
     setT1NewNull1("");
     setT1NewNull2("");
-  } catch (err: any) {
-    const msg = err.message || String(err);
-    showToast("error", `Transfer failed: ${msg}`);
-    if (Array.isArray(err.logs)) {
-      console.groupCollapsed("❌ Transfer error logs");
-      err.logs.forEach((l: string) => console.log(l));
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // If this error object has a `logs: string[]` field, print it:
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "logs" in err &&
+      Array.isArray((err as { logs: unknown[] }).logs)
+    ) {
+      const maybeLogs = (err as { logs: unknown[] }).logs;
+      console.groupCollapsed("❌ Program error logs");
+      maybeLogs.forEach((l) => {
+        if (typeof l === "string") console.log(l);
+      });
       console.groupEnd();
     }
+    showToast("error", `Init failed: ${msg}`);
+    console.error(err);
   } finally {
     setIsProcessingTransfer(false);
   }
