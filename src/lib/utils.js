@@ -1,7 +1,7 @@
 import { Connection, PublicKey, TransactionInstruction } from "@solana/web3.js";
 import {  DEVNET_RPC_URL, BATCH_LENGTH, BATCHES_PER_SMALL_TREE, SUB_BATCH_SIZE, MEMO_PROGRAM_ID } from "./constants";
 import {toBigInt} from "ethers";
-import {poseidon2} from "poseidon-lite";
+import {poseidon2, poseidon3} from "poseidon-lite";
 
 /**
  * Fetches the SOL balance (in SOL) for a given base58 pubkey string.
@@ -395,7 +395,7 @@ export async function getVariableBatchesFromMemos(connection, leavesIndexer) {
     const b64 = info.memo.slice(4);
     const memoBytes = Buffer.from(b64, "base64");
     // must be exactly 8 + 8*32 = 264 bytes
-    if (memoBytes.length !== 8 + 8 * 32){
+    if (memoBytes.length < 8 + 8 * 32){
       console.log("This is probably a subtree:");
       console.log("memoBytes of this: ", memoBytes);
     }
@@ -464,8 +464,6 @@ export async function getVariableBatchesFromMemos(connection, leavesIndexer) {
   return batches;
 }
 
-
-
 export function g1Uncompressed(curve, p1Raw) {
   let p1 = curve.G1.fromObject(p1Raw);
 
@@ -482,4 +480,9 @@ export function g2Uncompressed(curve, p2Raw) {
   curve.G2.toRprUncompressed(buff, 0, p2);
 
   return Buffer.from(buff);
+}
+
+export function getPoseidonBytes(value, nullifier, assetId){
+  const valueInLamports = value *1_000_000_000;
+  return to32(poseidon3([BigInt(valueInLamports), BigInt("0x" + Buffer.from(nullifier).toString("hex")), assetId]))
 }

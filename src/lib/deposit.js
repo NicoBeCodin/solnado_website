@@ -10,7 +10,7 @@ import { groth16 } from "snarkjs";
 import { poseidon3 } from "poseidon-lite";
 // import { buildPoseidon } from "circomlibjs";
 // or your poseidon import
-import { bigIntToU8Array,sendTransactionWithLogs, to32, g1Uncompressed, g2Uncompressed, attachMemoIfNeeded, maybeAddSmallTreeMemo, to8BE, parseMerkleMountainRange } from "./utils.js";
+import { bigIntToU8Array,sendTransactionWithLogs, to32, g1Uncompressed, g2Uncompressed, attachMemoIfNeeded, maybeAddSmallTreeMemo, to8BE, parseMerkleMountainRange, getPoseidonBytes } from "./utils.js";
 import {
   PROGRAM_ID,
   VARIABLE_POOL_SEED,
@@ -19,44 +19,95 @@ import {
   SUBTREE_INDEXER_SEED,
   TREE_DEPTH_LARGE_ARRAY,
 } from "./constants.js";
+import { loadNotes, saveNotes, generateNullifier } from "./noteStorage.js";
 import {buildBn128, utils} from "ffjavascript";
 
 
-export async function depositRepeatedly(connection, walletAdapter, identifier, nullifier) {
+
+export async function depositRepeatedly(
+  connection,
+  walletAdapter,
+  identifier 
+) {
   if (!walletAdapter.publicKey) {
     throw new Error("Wallet not connected");
   }
 
-  // 1) Ask how many deposits
+  // 1) How many deposits of 1_000_000 lamports?
   const raw = prompt("How many deposits of 1 000 000 lamports would you like to make?");
   const count = Number(raw);
   if (!Number.isInteger(count) || count <= 0) {
     throw new Error("Invalid number of deposits");
   }
-  if (!identifier) {
+
+  // 2) Ask for pool identifier if not provided
+  if (!identifier || !identifier.trim()) {
     identifier = prompt("Enter pool identifier (max 16 chars):") || "";
   }
-  if (!nullifier){
-    nullifier =prompt("Enter the default nullifier string that will be incremented");
-  }
+  identifier = identifier.slice(0, 16);
 
-  // 2) For each i, call your existing depositVariable
+  // 3) Before looping, load whatever notes are already in localStorage:
+  const key = walletAdapter.publicKey.toBase58();
+  const existingNotes = await loadNotes(key);
+
+  // 4) For each deposit, 
+  //     a) generate TWO brand‐new nullifiers,
+  //     b) call depositVariable(...), 
+  //     c) append two leaves into localStorage
   for (let i = 1; i <= count; i++) {
     console.log(`🔄 Deposit #${i} of ${count}…`);
-    // we'll deposit a single leaf of 1_000_000 with nullifier "nul<i>"
-    let result = await depositVariable(
+
+    // generate two independent nullifiers
+    const null1 = generateNullifier();
+    const null2 = generateNullifier();
+
+    // both leaves are 1_000_000 lamports = 0.001 SOL each:
+    const lamports = 1_000_000;
+    
+    // on‐chain call: deposit two leaves of 1_000_000 lamports each
+    const sig = await depositVariable(
       connection,
       walletAdapter,
       identifier,
-      [1_000_000, 1_000_000],
-      [`${nullifier}${i}`, `${nullifier}_${i}`]
+      [lamports, lamports],
+      [null1, null2]
     );
-    console.log("Result:", result);
-    console.log("Finished deposit", i);
+    console.log("On‐chain signature:", sig);
+
+    // Convert lamports → SOL (for local “notes” array)
+    const solAmt = lamports / 1e9; // 0.001
+
+
+    // create two note‐objects in the same shape as your other code expects:
+    const newNote1 = {
+      id: getPoseidonBytes(solAmt, null1, 0).toString("hex"),
+      amount: solAmt,
+      nullifier: null1,
+      timestamp: Date.now(),
+      nullifierHash: "",
+      poolId: identifier,
+    };
+    const newNote2 = {
+      id: getPoseidonBytes(solAmt, null2, 0).toString("hex"),
+      amount: solAmt,
+      nullifier: null2,
+      timestamp: Date.now(),
+      nullifierHash: "",
+      poolId: identifier,
+    };
+
+    // append them to the array
+    existingNotes.push(newNote1, newNote2);
+
+    console.log(`✅ Finished deposit #${i}`);
   }
 
-  console.log(`✅ Completed ${i} deposits.`);
+  // 5) Write everything back into localStorage and trigger a UI refresh
+  await saveNotes(key, existingNotes);
+  window.dispatchEvent(new Event("notesChanged"));
+  console.log(`✅ Completed ${count} deposits and saved notes locally.`);
 }
+
 export async function depositVariable(
   connection,
   walletAdapter,
@@ -78,8 +129,6 @@ export async function depositVariable(
     );
   }
   
-
-
   // 2) Derive PDA
   const idBuf = Buffer.alloc(16);
   idBuf.write(identifier, 0, "utf8");
@@ -273,34 +322,6 @@ export async function depositVariable(
   tx.recentBlockhash = blockhash;
   tx.feePayer = walletAdapter.publicKey;
 
-  //For debugging
-
-  // console.log("=== depositIx.keys ===");
-  // depositIx.keys.forEach((kt, idx) => {
-  //   console.log(
-  //     idx,
-  //     kt.pubkey.toBase58(),
-  //     " signer?", kt.isSigner,
-  //     " write?", kt.isWritable
-  //   );
-  // });
-
-  // console.log("=== tx.instructions ===");
-  // tx.instructions.forEach((ix, idx) => {
-  //   console.log(
-  //     idx,
-  //     ix.programId.toBase58(),
-  //     " keys:", ix.keys.map((k) => k.pubkey.toBase58()).join(", ")
-  //   );
-  // });
-
-  // // 8) Finally, log out the full instruction list one more time
-  // console.log("== Final instruction order ==");
-  // tx.instructions.forEach((ix, i) => {
-  //   console.log(i, ix.programId.toBase58());
-  // });
-
-  // 9) Send
   return await sendTransactionWithLogs(connection, walletAdapter, tx)
 
 }

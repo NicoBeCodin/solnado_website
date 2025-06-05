@@ -72,7 +72,7 @@ template Mkt2Verifier(nLevels) {
 
 }
 
-template WithdrawCircuit(nLevels) {
+template WithdrawCircuit(nLevels) {Trans
     signal input key;
     signal input val;
     component b1 = Num2Bits(64);
@@ -82,10 +82,6 @@ template WithdrawCircuit(nLevels) {
     signal input assetId;
     signal input root;
     signal input siblings[nLevels];
-
-    
-        
-    
 
     component v = Mkt2Verifier(nLevels);
     v.key           <== key;
@@ -100,6 +96,6 @@ template WithdrawCircuit(nLevels) {
     }
 }
 
-// we expose exactly [nullifierHash, secret, root] as the public outputs
+
 component main { public [nullifierHash, assetId, val, root] }
     = WithdrawCircuit(30);

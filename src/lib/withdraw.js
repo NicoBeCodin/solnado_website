@@ -65,6 +65,7 @@ export async function withdraw(connection, walletAdapter, identifier, value, nul
     }
     const assetId = BigInt(0);//0 for SOL
     const idBuf = Buffer.alloc(16);
+    // const valueNumber = Number(value);
     idBuf.write(identifier, 0, "utf8");
     const [poolPDA] = PublicKey.findProgramAddressSync(
         [VARIABLE_POOL_SEED, idBuf],
@@ -153,14 +154,21 @@ export async function withdraw(connection, walletAdapter, identifier, value, nul
     );
       console.log("test");
 
-    const sigs = publicSignals.map(s => BigInt(s));
+    const [val, nullHash, asset, root ] = publicSignals.map(s => BigInt(s));
     const pubBuf = Buffer.concat([
-        to32(sigs[0]),  // nullHash1
-        to32(sigs[1]),  // assetId
-        to8BE(value_number),  // val
-        to32(sigs[3]),  // root
+        to32(nullHash),  // nullHash1
+        to32(asset),  // assetId
+        to8BE(val),  // val
+        to32(root),  // root
     ]);
 
+    console.log("pubBuf: ", pubBuf);
+    console.log("to32", to32(nullHash));
+    console.log("to32", to32(asset));
+    console.log("to8", to8BE(val));
+    console.log("to32", to32(root));
+    
+    const paddedPubBuf =Buffer.concat([pubBuf, Buffer.alloc(136 - 104)]);//Target size of 136
 
     // — 9) Serialize proof πA/πB/πC —
     const { unstringifyBigInts } = utils;
@@ -171,17 +179,17 @@ export async function withdraw(connection, walletAdapter, identifier, value, nul
     const pi_c = g1Uncompressed(curve, proofBI.pi_c);
 
     const disc = new Uint8Array(instructionDiscriminators.withdraw_variable);
-
+    
     const base = Buffer.from(disc);
     const disc_mode = Buffer.concat([
         base,
         Buffer.from([0x00])
     ]);
     //We push the u8 the program expects
-    const ixData = Buffer.concat([disc_mode, pi_a, pi_b, pi_c, pubBuf]);
+    const ixData = Buffer.concat([disc_mode, pi_a, pi_b, pi_c, paddedPubBuf]);
 
     const [null1PDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from(to32(sigs[0]), "utf8")],
+        [Buffer.from(to32(nullHash), "utf8")],
         PROGRAM_ID
     );
 
